@@ -14,6 +14,7 @@ test('loads defaults for local dry-run operation', () => {
   assert.deepEqual(config.discord.naturalChannelIds, []);
   assert.equal(config.discord.voiceGuildId, '');
   assert.equal(config.discord.voiceChannelId, '');
+  assert.equal(config.discord.voiceFeedbackChannelId, '');
   assert.equal(config.todayPlus.inbox, 'D:\\ai프로젝트\\today-plus-obsidian-archiver\\inbox');
   assert.equal(config.todayPlus.source, '');
 });
@@ -29,11 +30,13 @@ test('loads natural Discord channel allowlist from env', () => {
 test('loads Discord voice channel settings from env', () => {
   const config = loadConfig({
     DISCORD_VOICE_GUILD_ID: 'guild-1',
-    DISCORD_VOICE_CHANNEL_ID: 'voice-1'
+    DISCORD_VOICE_CHANNEL_ID: 'voice-1',
+    DISCORD_VOICE_FEEDBACK_CHANNEL_ID: 'text-1'
   });
 
   assert.equal(config.discord.voiceGuildId, 'guild-1');
   assert.equal(config.discord.voiceChannelId, 'voice-1');
+  assert.equal(config.discord.voiceFeedbackChannelId, 'text-1');
 });
 
 test('enables Agent Room when env flag is true', () => {

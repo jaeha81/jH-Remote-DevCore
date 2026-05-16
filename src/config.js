@@ -15,7 +15,8 @@ export function loadConfig(env = process.env) {
       token: env.DISCORD_BOT_TOKEN ?? '',
       naturalChannelIds: parseList(env.DISCORD_NATURAL_CHANNEL_IDS),
       voiceGuildId: String(env.DISCORD_VOICE_GUILD_ID ?? '').trim(),
-      voiceChannelId: String(env.DISCORD_VOICE_CHANNEL_ID ?? '').trim()
+      voiceChannelId: String(env.DISCORD_VOICE_CHANNEL_ID ?? '').trim(),
+      voiceFeedbackChannelId: String(env.DISCORD_VOICE_FEEDBACK_CHANNEL_ID ?? '').trim()
     },
     todayPlus: {
       inbox: normalizePath(env.TODAY_PLUS_INBOX ?? 'D:\\ai프로젝트\\today-plus-obsidian-archiver\\inbox'),

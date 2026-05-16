@@ -75,3 +75,46 @@ test('voice controller transcribes speech and sends safe routing to Agent Room',
   assert.equal(logs[1].event, 'voice_agent_room_delivery');
   assert.equal(logs[1].sent, true);
 });
+
+test('voice controller sends feedback when transcription fails', async () => {
+  const replies = [];
+  const logs = [];
+  let capturedOnAudio;
+  const controller = createDiscordVoiceController({
+    runtime: {
+      configured: true,
+      start: async ({ onAudio }) => {
+        capturedOnAudio = onAudio;
+        return { guildId: 'guild-1', channelId: 'voice-1' };
+      }
+    },
+    config: {
+      discord: {
+        token: 'token',
+        voiceGuildId: 'guild-1',
+        voiceChannelId: 'voice-1',
+        voiceFeedbackChannelId: 'text-1'
+      }
+    },
+    transcribeAudio: async () => {
+      throw new Error('quota exceeded');
+    },
+    responder: {
+      sendMessage: async (channelId, content) => {
+        replies.push({ channelId, content });
+        return { sent: true };
+      }
+    },
+    logger: {
+      log: (entry) => logs.push(entry)
+    }
+  });
+
+  await controller.startCapture();
+  await assert.rejects(capturedOnAudio({ userId: 'user-1', audioPath: 'voice.wav' }), /quota exceeded/);
+
+  assert.equal(logs[0].event, 'voice_transcription_failed');
+  assert.equal(logs[0].error, 'quota exceeded');
+  assert.equal(replies[0].channelId, 'text-1');
+  assert.match(replies[0].content, /voice transcription failed/);
+});

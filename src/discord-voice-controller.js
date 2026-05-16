@@ -1,6 +1,7 @@
 import { createAgentRoomClient } from './agent-room-client.js';
 import { createLocalConnectorAgent } from './local-connector-agent.js';
 import { loadConfig } from './config.js';
+import { createDiscordResponder } from './discord-responder.js';
 
 export function createDiscordVoiceController({
   runtime,
@@ -8,6 +9,7 @@ export function createDiscordVoiceController({
   config = loadConfig(),
   connector = createLocalConnectorAgent(),
   agentRoomClient = createAgentRoomClient(config.agentRoom ?? {}),
+  responder = createDiscordResponder(config.discord ?? {}),
   transcribeAudio,
   logger = console
 } = {}) {
@@ -61,7 +63,20 @@ export function createDiscordVoiceController({
   };
 
   async function handleAudio(input) {
-    const transcript = await transcribeAudio(input);
+    let transcript;
+    try {
+      transcript = await transcribeAudio(input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logEvent(logger, {
+        event: 'voice_transcription_failed',
+        userId: input.userId,
+        error: message
+      });
+      await maybeSendFailureFeedback(responder, config, message);
+      throw error;
+    }
+
     logEvent(logger, {
       event: 'voice_transcribed',
       userId: input.userId,
@@ -86,6 +101,19 @@ export function createDiscordVoiceController({
       delivery
     };
   }
+}
+
+async function maybeSendFailureFeedback(responder, config, errorMessage) {
+  const channelId = String(config.discord?.voiceFeedbackChannelId ?? '').trim();
+  if (!channelId) {
+    return {
+      sent: false,
+      reason: 'voice_feedback_channel_not_configured'
+    };
+  }
+
+  const shortError = errorMessage.length > 240 ? `${errorMessage.slice(0, 237)}...` : errorMessage;
+  return responder.sendMessage(channelId, `[voice transcription failed] ${shortError}`);
 }
 
 async function maybeDeliver(agentRoomClient, routing, message) {

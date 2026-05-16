@@ -2,6 +2,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadConfig } from './config.js';
+import { createAgentRoomClient } from './agent-room-client.js';
+import { createLocalConnectorAgent } from './local-connector-agent.js';
 
 const DEFAULT_PORT = 3210;
 const MAX_TAIL_LINES = 80;
@@ -43,17 +45,30 @@ export function createVoicePreviewServer({
   port = DEFAULT_PORT,
   cwd = process.cwd(),
   env = process.env,
-  fetchImpl = globalThis.fetch
+  fetchImpl = globalThis.fetch,
+  connector = createLocalConnectorAgent(),
+  agentRoomClient = createAgentRoomClient(loadConfig(env).agentRoom)
 } = {}) {
   const server = createServer(async (request, response) => {
     try {
-      if (request.url === '/api/status') {
+      if (request.method === 'GET' && request.url === '/api/status') {
         const state = await buildVoicePreviewState({ cwd, env, fetchImpl });
         sendJson(response, 200, state);
         return;
       }
 
-      if (request.url === '/' || request.url === '/index.html') {
+      if (request.method === 'POST' && request.url === '/api/transcript') {
+        const payload = await readJsonRequest(request);
+        const result = await submitPreviewTranscript({
+          transcript: payload?.transcript,
+          connector,
+          agentRoomClient
+        });
+        sendJson(response, 200, result);
+        return;
+      }
+
+      if (request.method === 'GET' && (request.url === '/' || request.url === '/index.html')) {
         sendHtml(response, 200, renderPreviewHtml());
         return;
       }
@@ -90,6 +105,35 @@ export function createVoicePreviewServer({
         server.close((error) => error ? reject(error) : resolve());
       });
     }
+  };
+}
+
+export async function submitPreviewTranscript({
+  transcript,
+  connector = createLocalConnectorAgent(),
+  agentRoomClient = createAgentRoomClient(loadConfig().agentRoom)
+} = {}) {
+  const normalized = String(transcript ?? '').trim();
+  if (!normalized) {
+    throw new Error('transcript is required');
+  }
+
+  const routing = await connector.handleTranscript(normalized);
+  const message = {
+    ...routing.agentRoomMessage,
+    source: 'browser:speech'
+  };
+  const delivery = normalizeDelivery(await maybeDeliverTranscript(agentRoomClient, routing, message));
+
+  return {
+    ok: true,
+    routing: {
+      transcript: routing.transcript,
+      intent: routing.intent,
+      risk: routing.risk,
+      action: routing.action
+    },
+    delivery
   };
 }
 
@@ -198,6 +242,37 @@ function sendHtml(response, status, html) {
   response.end(html);
 }
 
+async function maybeDeliverTranscript(agentRoomClient, routing, message) {
+  if (routing.action.route.channel !== 'agent_room') {
+    return {
+      sent: false,
+      reason: 'route_not_agent_room',
+      target: routing.action.route.target
+    };
+  }
+
+  return agentRoomClient.send(message);
+}
+
+function normalizeDelivery(delivery) {
+  return {
+    sent: Boolean(delivery?.sent),
+    target: delivery?.target,
+    status: delivery?.status,
+    reason: delivery?.reason
+  };
+}
+
+async function readJsonRequest(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
 function renderPreviewHtml() {
   return `<!doctype html>
 <html lang="ko">
@@ -220,6 +295,10 @@ function renderPreviewHtml() {
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
     .panel { background: #ffffff; border: 1px solid #d9e2ec; border-radius: 8px; padding: 16px; min-width: 0; }
     .span { grid-column: 1 / -1; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    button { border: 1px solid #98a6b3; background: #17202a; color: #fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #fff; color: #17202a; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
     .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eef2f6; padding: 8px 0; font-size: 14px; }
     .row:last-child { border-bottom: 0; }
     .key { color: #5d6d7e; }
@@ -246,6 +325,15 @@ function renderPreviewHtml() {
         <h2>Agent Room</h2>
         <div id="agentRoom"></div>
       </div>
+      <div class="panel span">
+        <h2>Browser Speech</h2>
+        <div class="subtle" id="speechStatus">ready</div>
+        <div class="actions">
+          <button id="startSpeech">Start mic</button>
+          <button class="secondary" id="stopSpeech">Stop</button>
+        </div>
+        <pre id="speechLog"></pre>
+      </div>
       <div class="panel">
         <h2>Voice stdout</h2>
         <pre id="outLog"></pre>
@@ -263,6 +351,64 @@ function renderPreviewHtml() {
   <script>
     const bool = (value) => value ? '<span class="ok">ready</span>' : '<span class="bad">missing</span>';
     const row = (key, value) => '<div class="row"><span class="key">' + key + '</span><span class="value">' + value + '</span></div>';
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speechStatus = document.getElementById('speechStatus');
+    const speechLog = document.getElementById('speechLog');
+    const startSpeech = document.getElementById('startSpeech');
+    const stopSpeech = document.getElementById('stopSpeech');
+    let recognition;
+
+    function appendSpeech(message) {
+      speechLog.textContent = [new Date().toLocaleTimeString() + ' ' + message, speechLog.textContent]
+        .filter(Boolean)
+        .join('\\n');
+    }
+
+    async function sendTranscript(transcript) {
+      const response = await fetch('/api/transcript', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ transcript })
+      });
+      const result = await response.json();
+      appendSpeech('sent: ' + transcript + ' -> ' + JSON.stringify(result.delivery));
+      await refresh();
+    }
+
+    if (!SpeechRecognition) {
+      speechStatus.innerHTML = '<span class="bad">browser speech recognition unsupported</span>';
+      startSpeech.disabled = true;
+      stopSpeech.disabled = true;
+    } else {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ko-KR';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.onstart = () => {
+        speechStatus.innerHTML = '<span class="ok">listening</span>';
+        appendSpeech('listening started');
+      };
+      recognition.onerror = (event) => {
+        speechStatus.innerHTML = '<span class="bad">' + event.error + '</span>';
+        appendSpeech('error: ' + event.error);
+      };
+      recognition.onend = () => {
+        speechStatus.textContent = 'stopped';
+      };
+      recognition.onresult = (event) => {
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          if (!result.isFinal) continue;
+          const transcript = result[0].transcript.trim();
+          if (!transcript) continue;
+          appendSpeech('heard: ' + transcript);
+          sendTranscript(transcript).catch((error) => appendSpeech('send failed: ' + error.message));
+        }
+      };
+      startSpeech.onclick = () => recognition.start();
+      stopSpeech.onclick = () => recognition.stop();
+    }
+
     async function refresh() {
       const response = await fetch('/api/status', { cache: 'no-store' });
       const state = await response.json();

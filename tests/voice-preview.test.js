@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildVoicePreviewState } from '../src/voice-preview.js';
+import { submitPreviewTranscript } from '../src/voice-preview.js';
 
 test('voice preview reports runtime logs, config readiness, and recent voice messages', async () => {
   const state = await buildVoicePreviewState({
@@ -71,4 +72,44 @@ test('voice preview survives missing logs and unreachable Agent Room', async () 
   assert.equal(state.logs.err.exists, false);
   assert.equal(state.agentRoom.ok, false);
   assert.equal(state.agentRoom.reason, 'agent_room_unreachable');
+});
+
+test('preview transcript submission routes browser speech to Agent Room', async () => {
+  const sent = [];
+  const result = await submitPreviewTranscript({
+    transcript: 'status',
+    connector: {
+      handleTranscript: async (transcript) => ({
+        transcript,
+        intent: 'status',
+        action: {
+          type: 'local_status',
+          route: { channel: 'agent_room', target: 'claude' }
+        },
+        agentRoomMessage: {
+          source: 'browser:speech',
+          intent: 'status',
+          body: transcript
+        }
+      })
+    },
+    agentRoomClient: {
+      send: async (message) => {
+        sent.push(message);
+        return { sent: true };
+      }
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.routing.intent, 'status');
+  assert.equal(result.delivery.sent, true);
+  assert.equal(sent[0].source, 'browser:speech');
+});
+
+test('preview transcript submission rejects empty speech', async () => {
+  await assert.rejects(
+    submitPreviewTranscript({ transcript: '   ' }),
+    /transcript is required/
+  );
 });
