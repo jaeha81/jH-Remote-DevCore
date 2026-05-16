@@ -98,6 +98,19 @@ Risky commands still return `approval_required` and are not sent as executable w
 node --test
 ```
 
+## Context Handoff
+
+If context compression risk appears, do not continue silently.
+
+1. Update `llm-wiki/current-state.md`.
+2. Update `llm-wiki/validation-log.md`.
+3. Update `llm-wiki/handoff-prompt.md`.
+4. Run `node --test`.
+5. Commit and push.
+6. Start a new session with the prompt in `llm-wiki/handoff-prompt.md`.
+
+Full protocol: `docs/context-handoff-protocol.md`.
+
 ## Agent Flow
 
 ```text

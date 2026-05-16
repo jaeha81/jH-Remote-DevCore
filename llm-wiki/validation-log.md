@@ -37,3 +37,14 @@ Observed issue:
 
 - `127.0.0.1:3100` returned HTTP 200 but not JSON Agent Room status.
 - Diagnostic now reports `agent_room_unexpected_response`.
+
+## Context Handoff Protocol Validation
+
+Defined required handoff sequence:
+
+- notify user before compression.
+- update LLM Wiki.
+- run tests.
+- commit and push.
+- provide new-session command.
+- end current session.

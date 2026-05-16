@@ -14,6 +14,8 @@ Updated: 2026-05-16
 - Approval flow implemented.
 - OpenAI Whisper provider implemented.
 - Discord voice capture gate and roadmap added.
+- LLM Wiki handoff structure added.
+- Context handoff protocol defined in `docs/context-handoff-protocol.md`.
 
 ## Verification
 
@@ -31,3 +33,7 @@ Updated: 2026-05-16
 - Live Discord token test not performed in this session.
 - Live OpenAI Whisper test not performed because no API key supplied.
 - Discord voice channel capture not implemented because voice runtime dependencies are not installed.
+
+## Context Rule
+
+If context compression risk appears, stop new work, update LLM Wiki, run verification, commit and push, then give the user the new-session prompt from `llm-wiki/handoff-prompt.md`.
