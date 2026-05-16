@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildVoicePreviewState } from '../src/voice-preview.js';
-import { submitPreviewTranscript } from '../src/voice-preview.js';
+import { buildVoicePreviewState, createVoicePreviewServer, submitPreviewTranscript } from '../src/voice-preview.js';
 
 test('voice preview reports runtime logs, config readiness, and recent voice messages', async () => {
   const state = await buildVoicePreviewState({
@@ -112,4 +111,23 @@ test('preview transcript submission rejects empty speech', async () => {
     submitPreviewTranscript({ transcript: '   ' }),
     /transcript is required/
   );
+});
+
+test('voice preview server can bind to a requested host for LAN access', async () => {
+  const preview = createVoicePreviewServer({
+    host: '127.0.0.1',
+    port: 0,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ messages: [] })
+    })
+  });
+
+  const started = await preview.start();
+  await preview.stop();
+
+  assert.equal(started.started, true);
+  assert.equal(started.host, '127.0.0.1');
+  assert.match(started.url, /^http:\/\/127\.0\.0\.1:\d+$/);
 });

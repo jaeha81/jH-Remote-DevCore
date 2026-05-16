@@ -78,6 +78,9 @@ function parseArgs(argv) {
     } else if (arg === '--port') {
       args.port = Number(argv[index + 1]);
       index += 1;
+    } else if (arg === '--host') {
+      args.host = argv[index + 1];
+      index += 1;
     } else if (arg === '--check-agent-room') {
       args.checkAgentRoom = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -133,7 +136,7 @@ function printHelp() {
   node src/cli.js --discord-message .\\discord-message.json
   node src/cli.js --discord-live
   node src/cli.js --discord-voice-live
-  node src/cli.js --voice-preview --port 3210
+  node src/cli.js --voice-preview --host 127.0.0.1 --port 3210
   node src/cli.js --check-agent-room
 
 MVP:
@@ -144,6 +147,7 @@ MVP:
   --discord-live  connect Discord Gateway text bot
   --discord-voice-live  connect Discord voice capture bot
   --voice-preview  serve a local Discord voice status preview
+  --host  bind preview host, use 0.0.0.0 for LAN/mobile access
   --check-agent-room  check configured Agent Room /api/status
 
 Agent Room:
@@ -168,6 +172,7 @@ async function runDiscordLive(config) {
 
 async function runVoicePreview(args) {
   const preview = createVoicePreviewServer({
+    host: args.host || '127.0.0.1',
     port: Number.isFinite(args.port) ? args.port : 3210
   });
   const result = await preview.start();

@@ -42,6 +42,7 @@ export async function buildVoicePreviewState({
 }
 
 export function createVoicePreviewServer({
+  host = '127.0.0.1',
   port = DEFAULT_PORT,
   cwd = process.cwd(),
   env = process.env,
@@ -87,16 +88,21 @@ export function createVoicePreviewServer({
     async start() {
       await new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(port, '127.0.0.1', () => {
+        server.listen(port, host, () => {
           server.off('error', reject);
           resolve();
         });
       });
+      const address = server.address();
+      const boundPort = typeof address === 'object' && address ? address.port : port;
+      const urlHost = host === '0.0.0.0' ? '127.0.0.1' : host;
 
       return {
         started: true,
         mode: 'voice-preview',
-        url: `http://127.0.0.1:${port}`
+        host,
+        port: boundPort,
+        url: `http://${urlHost}:${boundPort}`
       };
     },
     async stop() {
