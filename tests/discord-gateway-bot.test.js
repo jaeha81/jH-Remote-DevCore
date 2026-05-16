@@ -53,6 +53,7 @@ test('Discord gateway bot identifies after hello and forwards message events', a
   });
 
   assert.equal(sent[0].op, 2);
+  assert.equal(sent[0].d.intents, (1 << 9) | (1 << 15));
   assert.equal(handled[0].content, '!jh 현재 상태 알려줘');
   socket.close();
 });

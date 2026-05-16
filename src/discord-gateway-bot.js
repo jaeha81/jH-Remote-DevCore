@@ -3,7 +3,7 @@ export function createDiscordGatewayBot({
   textBot,
   WebSocketImpl = globalThis.WebSocket,
   gatewayUrl = 'wss://gateway.discord.gg/?v=10&encoding=json',
-  intents = 1 << 9,
+  intents = (1 << 9) | (1 << 15),
   keepAlive = false
 }) {
   if (!token) {
