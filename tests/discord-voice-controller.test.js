@@ -27,6 +27,7 @@ test('voice controller requires configured guild and voice channel', async () =>
 
 test('voice controller transcribes speech and sends safe routing to Agent Room', async () => {
   const sent = [];
+  const logs = [];
   let capturedOnAudio;
   const controller = createDiscordVoiceController({
     runtime: {
@@ -53,6 +54,9 @@ test('voice controller transcribes speech and sends safe routing to Agent Room',
         sent.push(message);
         return { sent: true };
       }
+    },
+    logger: {
+      log: (entry) => logs.push(entry)
     }
   });
 
@@ -66,4 +70,8 @@ test('voice controller transcribes speech and sends safe routing to Agent Room',
   assert.equal(handled.delivery.sent, true);
   assert.equal(sent[0].source, 'discord:voice');
   assert.equal(sent[0].intent, 'status');
+  assert.equal(logs[0].event, 'voice_transcribed');
+  assert.equal(logs[0].transcriptLength, 6);
+  assert.equal(logs[1].event, 'voice_agent_room_delivery');
+  assert.equal(logs[1].sent, true);
 });

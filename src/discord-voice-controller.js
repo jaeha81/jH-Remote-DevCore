@@ -8,7 +8,8 @@ export function createDiscordVoiceController({
   config = loadConfig(),
   connector = createLocalConnectorAgent(),
   agentRoomClient = createAgentRoomClient(config.agentRoom ?? {}),
-  transcribeAudio
+  transcribeAudio,
+  logger = console
 } = {}) {
   const voiceRuntime = runtime ?? {
     configured: runtimeConfigured,
@@ -61,12 +62,24 @@ export function createDiscordVoiceController({
 
   async function handleAudio(input) {
     const transcript = await transcribeAudio(input);
+    logEvent(logger, {
+      event: 'voice_transcribed',
+      userId: input.userId,
+      transcriptLength: transcript.length
+    });
     const routing = await connector.handleTranscript(transcript);
     const message = {
       ...routing.agentRoomMessage,
       source: 'discord:voice'
     };
     const delivery = await maybeDeliver(agentRoomClient, routing, message);
+    logEvent(logger, {
+      event: 'voice_agent_room_delivery',
+      userId: input.userId,
+      intent: routing.agentRoomMessage.intent,
+      sent: Boolean(delivery.sent),
+      reason: delivery.reason
+    });
 
     return {
       ...routing,
@@ -92,4 +105,9 @@ function normalizeVoiceConfig(config) {
     guildId: String(config.discord?.voiceGuildId ?? '').trim(),
     channelId: String(config.discord?.voiceChannelId ?? '').trim()
   };
+}
+
+function logEvent(logger, event) {
+  if (typeof logger?.log !== 'function') return;
+  logger.log(event);
 }

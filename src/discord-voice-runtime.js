@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { buildPcm16Wav } from './wav-file.js';
 
-export async function createDiscordVoiceRuntime() {
+export async function createDiscordVoiceRuntime({ logger = console } = {}) {
   const [{ Client, GatewayIntentBits }, voice, prism] = await Promise.all([
     import('discord.js'),
     import('@discordjs/voice'),
@@ -45,16 +45,29 @@ export async function createDiscordVoiceRuntime() {
       });
 
       await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 30_000);
+      logEvent(logger, {
+        event: 'voice_session_ready',
+        guildId,
+        channelId
+      });
 
       connection.receiver.speaking.on('start', (userId) => {
+        logEvent(logger, {
+          event: 'voice_speaking_start',
+          userId
+        });
         const opusStream = connection.receiver.subscribe(userId, {
           end: {
             behavior: voice.EndBehaviorType.AfterSilence,
             duration: 1200
           }
         });
-        void handleSpeech({ userId, opusStream, prism, onAudio }).catch((error) => {
-          console.error(error instanceof Error ? error.message : String(error));
+        void handleSpeech({ userId, opusStream, prism, onAudio, logger }).catch((error) => {
+          logEvent(logger, {
+            event: 'voice_audio_error',
+            userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
         });
       });
 
@@ -70,7 +83,7 @@ export async function createDiscordVoiceRuntime() {
   };
 }
 
-async function handleSpeech({ userId, opusStream, prism, onAudio }) {
+async function handleSpeech({ userId, opusStream, prism, onAudio, logger }) {
   const decoder = new prism.opus.Decoder({
     rate: 48000,
     channels: 2,
@@ -84,6 +97,10 @@ async function handleSpeech({ userId, opusStream, prism, onAudio }) {
   }
 
   if (chunks.length === 0) {
+    logEvent(logger, {
+      event: 'voice_audio_empty',
+      userId
+    });
     return;
   }
 
@@ -93,8 +110,22 @@ async function handleSpeech({ userId, opusStream, prism, onAudio }) {
   try {
     const wav = buildPcm16Wav({ pcm: Buffer.concat(chunks) });
     await writeFile(audioPath, wav);
+    logEvent(logger, {
+      event: 'voice_audio_captured',
+      userId,
+      chunkCount: chunks.length,
+      bytes: wav.length
+    });
     await onAudio({ userId, audioPath });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+function logEvent(logger, event) {
+  if (typeof logger?.log !== 'function') return;
+  logger.log(JSON.stringify({
+    ...event,
+    at: new Date().toISOString()
+  }));
 }

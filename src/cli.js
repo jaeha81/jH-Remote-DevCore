@@ -12,6 +12,7 @@ import { createDiscordGatewayBot } from './discord-gateway-bot.js';
 import { createAgentRoomDiagnostics } from './agent-room-diagnostics.js';
 import { writeTodayPlusDrop } from './today-plus-drop.js';
 import { createDiscordVoiceController } from './discord-voice-controller.js';
+import { createVoicePreviewServer } from './voice-preview.js';
 
 async function main(argv) {
   const args = parseArgs(argv);
@@ -24,6 +25,11 @@ async function main(argv) {
 
   if (args.discordVoiceLive) {
     await runDiscordVoiceLive(config);
+    return;
+  }
+
+  if (args.voicePreview) {
+    await runVoicePreview(args);
     return;
   }
 
@@ -67,6 +73,11 @@ function parseArgs(argv) {
       args.discordLive = true;
     } else if (arg === '--discord-voice-live') {
       args.discordVoiceLive = true;
+    } else if (arg === '--voice-preview') {
+      args.voicePreview = true;
+    } else if (arg === '--port') {
+      args.port = Number(argv[index + 1]);
+      index += 1;
     } else if (arg === '--check-agent-room') {
       args.checkAgentRoom = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -122,6 +133,7 @@ function printHelp() {
   node src/cli.js --discord-message .\\discord-message.json
   node src/cli.js --discord-live
   node src/cli.js --discord-voice-live
+  node src/cli.js --voice-preview --port 3210
   node src/cli.js --check-agent-room
 
 MVP:
@@ -131,6 +143,7 @@ MVP:
   --discord-message  Discord MESSAGE_CREATE JSON file
   --discord-live  connect Discord Gateway text bot
   --discord-voice-live  connect Discord voice capture bot
+  --voice-preview  serve a local Discord voice status preview
   --check-agent-room  check configured Agent Room /api/status
 
 Agent Room:
@@ -151,6 +164,14 @@ async function runDiscordLive(config) {
     mode: 'discord-live',
     prefix: config.discord.prefix
   }, null, 2));
+}
+
+async function runVoicePreview(args) {
+  const preview = createVoicePreviewServer({
+    port: Number.isFinite(args.port) ? args.port : 3210
+  });
+  const result = await preview.start();
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function runDiscordVoiceLive(config) {

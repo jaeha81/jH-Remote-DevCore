@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { buildVoicePreviewState } from '../src/voice-preview.js';
+
+test('voice preview reports runtime logs, config readiness, and recent voice messages', async () => {
+  const state = await buildVoicePreviewState({
+    cwd: 'D:\\project',
+    env: {
+      DISCORD_BOT_TOKEN: 'discord-token',
+      DISCORD_VOICE_GUILD_ID: 'guild-1',
+      DISCORD_VOICE_CHANNEL_ID: 'voice-1',
+      WHISPER_PROVIDER: 'openai',
+      OPENAI_API_KEY: 'sk-test',
+      AGENT_ROOM_ENABLED: 'true',
+      AGENT_ROOM_BASE_URL: 'http://agent-room.local',
+      AGENT_ROOM_TARGET: 'claude'
+    },
+    readTextFile: async (path) => {
+      if (path.endsWith('.discord-voice.out.log')) {
+        return '{"started":true,"mode":"discord-voice-live"}\n';
+      }
+      if (path.endsWith('.discord-voice.err.log')) {
+        return 'ready\n';
+      }
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    fetchImpl: async (url) => {
+      assert.equal(url, 'http://agent-room.local/api/status?format=json');
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          messages: [
+            { source: 'discord:voice', text: '[Voice DevCore] status', status: 'working' },
+            { source: 'discord:text', text: 'status', status: 'done' }
+          ]
+        })
+      };
+    }
+  });
+
+  assert.equal(state.config.discordToken, true);
+  assert.equal(state.config.voiceGuildId, 'guild-1');
+  assert.equal(state.config.voiceChannelId, 'voice-1');
+  assert.equal(state.config.whisperReady, true);
+  assert.equal(state.config.agentRoomEnabled, true);
+  assert.equal(state.logs.out.tail[0], '{"started":true,"mode":"discord-voice-live"}');
+  assert.equal(state.logs.err.tail[0], 'ready');
+  assert.equal(state.agentRoom.ok, true);
+  assert.equal(state.agentRoom.recentVoiceMessages.length, 1);
+  assert.equal(JSON.stringify(state).includes('discord-token'), false);
+  assert.equal(JSON.stringify(state).includes('sk-test'), false);
+});
+
+test('voice preview survives missing logs and unreachable Agent Room', async () => {
+  const state = await buildVoicePreviewState({
+    cwd: 'D:\\project',
+    env: {},
+    readTextFile: async () => {
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    fetchImpl: async () => {
+      throw new Error('connection refused');
+    }
+  });
+
+  assert.equal(state.config.discordToken, false);
+  assert.equal(state.config.whisperReady, false);
+  assert.equal(state.logs.out.exists, false);
+  assert.equal(state.logs.err.exists, false);
+  assert.equal(state.agentRoom.ok, false);
+  assert.equal(state.agentRoom.reason, 'agent_room_unreachable');
+});
