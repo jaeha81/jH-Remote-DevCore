@@ -106,6 +106,41 @@ test('preview transcript submission routes browser speech to Agent Room', async 
   assert.equal(sent[0].source, 'browser:speech');
 });
 
+test('preview transcript submission delivers safe unknown manual input to Agent Room', async () => {
+  const sent = [];
+  const result = await submitPreviewTranscript({
+    transcript: '모바일에서 이어서 작업해',
+    connector: {
+      handleTranscript: async (transcript) => ({
+        transcript,
+        intent: 'unknown',
+        risk: 'safe',
+        action: {
+          type: 'needs_clarification',
+          route: { channel: 'user', target: 'claude' }
+        },
+        agentRoomMessage: {
+          source: 'browser:speech',
+          intent: 'unknown',
+          risk: 'safe',
+          actionType: 'needs_clarification',
+          transcript
+        }
+      })
+    },
+    agentRoomClient: {
+      send: async (message) => {
+        sent.push(message);
+        return { sent: true };
+      }
+    }
+  });
+
+  assert.equal(result.delivery.sent, true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].transcript, '모바일에서 이어서 작업해');
+});
+
 test('preview transcript submission rejects empty speech', async () => {
   await assert.rejects(
     submitPreviewTranscript({ transcript: '   ' }),
@@ -118,6 +153,14 @@ test('preview page includes manual mobile fallback controls', () => {
 
   assert.match(preview.renderHtml(), /id="manualTranscript"/);
   assert.match(preview.renderHtml(), /id="sendManualTranscript"/);
+});
+
+test('preview page shows a readable multiline mobile manual input', () => {
+  const preview = createVoicePreviewServer();
+  const html = preview.renderHtml();
+
+  assert.match(html, /<textarea id="manualTranscript"/);
+  assert.match(html, /placeholder="모바일에서 음성이 안 되면 여기에 입력"/);
 });
 
 test('voice preview server can bind to a requested host for LAN access', async () => {

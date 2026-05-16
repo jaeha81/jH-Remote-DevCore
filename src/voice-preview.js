@@ -250,7 +250,7 @@ function sendHtml(response, status, html) {
 }
 
 async function maybeDeliverTranscript(agentRoomClient, routing, message) {
-  if (routing.action.route.channel !== 'agent_room') {
+  if (routing.action.route.channel !== 'agent_room' && !isSafeManualFallback(routing)) {
     return {
       sent: false,
       reason: 'route_not_agent_room',
@@ -259,6 +259,12 @@ async function maybeDeliverTranscript(agentRoomClient, routing, message) {
   }
 
   return agentRoomClient.send(message);
+}
+
+function isSafeManualFallback(routing) {
+  return routing.intent === 'unknown'
+    && routing.risk === 'safe'
+    && routing.action?.type === 'needs_clarification';
 }
 
 function normalizeDelivery(delivery) {
@@ -306,7 +312,18 @@ function renderPreviewHtml() {
     button { border: 1px solid #98a6b3; background: #17202a; color: #fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
     button.secondary { background: #fff; color: #17202a; }
     button:disabled { opacity: .55; cursor: not-allowed; }
-    input { border: 1px solid #b8c4d0; border-radius: 6px; padding: 9px 10px; min-width: 260px; flex: 1; font-size: 14px; }
+    textarea {
+      border: 1px solid #b8c4d0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      min-width: 260px;
+      min-height: 92px;
+      flex: 1 1 360px;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.45;
+      resize: vertical;
+    }
     .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eef2f6; padding: 8px 0; font-size: 14px; }
     .row:last-child { border-bottom: 0; }
     .key { color: #5d6d7e; }
@@ -341,7 +358,7 @@ function renderPreviewHtml() {
           <button class="secondary" id="stopSpeech">Stop</button>
         </div>
         <div class="actions">
-          <input id="manualTranscript" type="text" placeholder="모바일에서 음성이 안 되면 여기에 입력">
+          <textarea id="manualTranscript" placeholder="모바일에서 음성이 안 되면 여기에 입력"></textarea>
           <button id="sendManualTranscript">Send</button>
         </div>
         <pre id="speechLog"></pre>
@@ -396,7 +413,8 @@ function renderPreviewHtml() {
       sendTranscript(transcript).catch((error) => appendSpeech('send failed: ' + error.message));
     };
     manualTranscript.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
         sendManualTranscript.click();
       }
     });
