@@ -74,6 +74,13 @@ $env:AGENT_ROOM_ENABLED="false"
 node src/cli.js --text "현재 상태 알려줘"
 ```
 
+Check Agent Room connectivity:
+
+```powershell
+$env:AGENT_ROOM_BASE_URL="http://127.0.0.1:3100"
+node src/cli.js --check-agent-room
+```
+
 To send safe commands to Agent Room:
 
 ```powershell
@@ -104,4 +111,4 @@ Discord/Voice -> Whisper Agent -> Local Connector Agent -> Local Adapter -> Exis
 - Discord voice capture is gated. Live voice capture needs `@discordjs/voice`, `prism-media`, and an Opus runtime.
 - Local Adapter does not run shell commands.
 - Risky commands return approval requests only.
-- Agent Room bridge assumes `POST /messages` JSON endpoint.
+- Agent Room bridge uses `POST /api/messages` and `GET /api/status`.
