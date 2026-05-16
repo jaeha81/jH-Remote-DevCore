@@ -7,10 +7,18 @@ import { createAgentRoomClient } from './agent-room-client.js';
 import { createTranscriberFromConfig } from './whisper-provider.js';
 import { createDiscordIngress } from './discord-ingress.js';
 import { readFile } from 'node:fs/promises';
+import { createDiscordTextBot } from './discord-text-bot.js';
+import { createDiscordGatewayBot } from './discord-gateway-bot.js';
 
 async function main(argv) {
   const args = parseArgs(argv);
   const config = loadConfig();
+
+  if (args.discordLive) {
+    await runDiscordLive(config);
+    return;
+  }
+
   const transcript = await readTranscript(args, config);
   const agent = createLocalConnectorAgent();
   const routing = await agent.handleTranscript(transcript);
@@ -41,6 +49,8 @@ function parseArgs(argv) {
     } else if (arg === '--discord-message') {
       args.discordMessage = argv[index + 1];
       index += 1;
+    } else if (arg === '--discord-live') {
+      args.discordLive = true;
     } else if (arg === '--help' || arg === '-h') {
       args.help = true;
     }
@@ -92,16 +102,32 @@ function printHelp() {
   node src/cli.js --file .\\voice-command.txt
   node src/cli.js --voice-file .\\voice.webm
   node src/cli.js --discord-message .\\discord-message.json
+  node src/cli.js --discord-live
 
 MVP:
   --text  direct command text
   --file  UTF-8 transcript text file
   --voice-file  audio file through WHISPER_PROVIDER
   --discord-message  Discord MESSAGE_CREATE JSON file
+  --discord-live  connect Discord Gateway text bot
 
 Agent Room:
   AGENT_ROOM_ENABLED=false by default, so CLI returns dry-run delivery.
 `);
+}
+
+async function runDiscordLive(config) {
+  const textBot = createDiscordTextBot({ config });
+  const gateway = createDiscordGatewayBot({
+    token: config.discord.token,
+    textBot
+  });
+  await gateway.connect();
+  console.log(JSON.stringify({
+    started: true,
+    mode: 'discord-live',
+    prefix: config.discord.prefix
+  }, null, 2));
 }
 
 async function maybeDeliver(agentRoom, routing) {

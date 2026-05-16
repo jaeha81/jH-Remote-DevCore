@@ -47,6 +47,24 @@ Discord `MESSAGE_CREATE` JSON dry-run:
 node src/cli.js --discord-message .\discord-message.json
 ```
 
+Discord live text bot:
+
+```powershell
+$env:DISCORD_BOT_TOKEN="..."
+$env:DISCORD_COMMAND_PREFIX="!jh"
+$env:AGENT_ROOM_ENABLED="true"
+$env:AGENT_ROOM_BASE_URL="http://127.0.0.1:3100"
+node src/cli.js --discord-live
+```
+
+Current live bot behavior:
+
+- ignores bot messages
+- accepts only prefixed text commands, default `!jh`
+- routes safe commands to Agent Room
+- creates Discord approval prompts for risky commands
+- blocks destructive commands before Agent Room delivery
+
 ## Agent Room Bridge
 
 Default mode is dry-run. It builds the Agent Room payload but does not send it.
@@ -81,9 +99,9 @@ Discord/Voice -> Whisper Agent -> Local Connector Agent -> Local Adapter -> Exis
 
 ## Current MVP Limits
 
-- Real Discord bot is not connected yet.
+- Discord text Gateway bot is implemented with Node built-in `WebSocket`.
 - OpenAI Whisper transcription is available through `WHISPER_PROVIDER=openai`, but live use requires `OPENAI_API_KEY`.
-- Discord live Gateway bot is not connected yet; current Discord input is `MESSAGE_CREATE` JSON parsing.
+- Discord voice capture is gated. Live voice capture needs `@discordjs/voice`, `prism-media`, and an Opus runtime.
 - Local Adapter does not run shell commands.
 - Risky commands return approval requests only.
 - Agent Room bridge assumes `POST /messages` JSON endpoint.

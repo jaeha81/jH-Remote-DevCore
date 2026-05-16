@@ -11,7 +11,8 @@ export function loadConfig(env = process.env) {
       model: env.WHISPER_MODEL ?? 'whisper-1'
     },
     discord: {
-      prefix: env.DISCORD_COMMAND_PREFIX ?? '!jh'
+      prefix: env.DISCORD_COMMAND_PREFIX ?? '!jh',
+      token: env.DISCORD_BOT_TOKEN ?? ''
     }
   };
 }
