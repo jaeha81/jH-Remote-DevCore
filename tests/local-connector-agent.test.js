@@ -12,6 +12,7 @@ test('safe status transcript returns local status action plan', async () => {
   assert.equal(result.risk, 'safe');
   assert.equal(result.action.type, 'local_status');
   assert.equal(result.action.autoExecutable, true);
+  assert.equal(result.action.route.target, 'claude');
 });
 
 test('approval-required command returns approval request action', async () => {

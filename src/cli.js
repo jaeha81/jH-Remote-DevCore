@@ -2,12 +2,21 @@
 
 import { createLocalConnectorAgent } from './local-connector-agent.js';
 import { transcribeTextFile } from './whisper-agent.js';
+import { loadConfig } from './config.js';
+import { createAgentRoomClient } from './agent-room-client.js';
 
 async function main(argv) {
   const args = parseArgs(argv);
   const transcript = await readTranscript(args);
+  const config = loadConfig();
   const agent = createLocalConnectorAgent();
-  const result = await agent.handleTranscript(transcript);
+  const routing = await agent.handleTranscript(transcript);
+  const agentRoom = createAgentRoomClient(config.agentRoom);
+  const delivery = await maybeDeliver(agentRoom, routing);
+  const result = {
+    ...routing,
+    delivery
+  };
 
   console.log(JSON.stringify(result, null, 2));
 }
@@ -58,7 +67,22 @@ function printHelp() {
 MVP:
   --text  direct command text
   --file  UTF-8 transcript text file
+
+Agent Room:
+  AGENT_ROOM_ENABLED=false by default, so CLI returns dry-run delivery.
 `);
+}
+
+async function maybeDeliver(agentRoom, routing) {
+  if (routing.action.route.channel !== 'agent_room') {
+    return {
+      sent: false,
+      reason: 'route_not_agent_room',
+      target: routing.action.route.target
+    };
+  }
+
+  return agentRoom.send(routing.agentRoomMessage);
 }
 
 main(process.argv.slice(2)).catch((error) => {

@@ -13,8 +13,20 @@ export function createLocalConnectorAgent({ adapter = createLocalAdapter() } = {
         intent: classification.intent,
         risk: classification.risk,
         reason: classification.reason,
-        action
+        action,
+        agentRoomMessage: buildAgentRoomMessage(normalizedTranscript, classification, action)
       };
     }
+  };
+}
+
+function buildAgentRoomMessage(transcript, classification, action) {
+  return {
+    source: 'voice-local-connector',
+    transcript,
+    intent: classification.intent,
+    risk: classification.risk,
+    actionType: action.type,
+    autoExecutable: action.autoExecutable
   };
 }
