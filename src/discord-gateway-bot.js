@@ -3,7 +3,8 @@ export function createDiscordGatewayBot({
   textBot,
   WebSocketImpl = globalThis.WebSocket,
   gatewayUrl = 'wss://gateway.discord.gg/?v=10&encoding=json',
-  intents = 1 << 9
+  intents = 1 << 9,
+  keepAlive = false
 }) {
   if (!token) {
     throw new Error('DISCORD_BOT_TOKEN is required');
@@ -16,8 +17,21 @@ export function createDiscordGatewayBot({
   return {
     async connect() {
       const socket = new WebSocketImpl(gatewayUrl);
+      const keepAliveTimer = keepAlive ? setInterval(() => {}, 2147483647) : null;
+      let heartbeatTimer = null;
 
-      socket.onopen = () => {
+      const cleanup = () => {
+        if (keepAliveTimer) {
+          clearInterval(keepAliveTimer);
+        }
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+        }
+      };
+      socket.onclose = cleanup;
+      socket.onerror = cleanup;
+
+      const identify = () => {
         socket.send(JSON.stringify({
           op: 2,
           d: {
@@ -36,7 +50,8 @@ export function createDiscordGatewayBot({
         const packet = JSON.parse(event.data);
 
         if (packet.op === 10) {
-          startHeartbeat(socket, packet.d?.heartbeat_interval);
+          heartbeatTimer = startHeartbeat(socket, packet.d?.heartbeat_interval);
+          identify();
           return;
         }
 
@@ -63,7 +78,5 @@ function startHeartbeat(socket, interval) {
     }
   }, interval);
 
-  if (typeof timer.unref === 'function') {
-    timer.unref();
-  }
+  return timer;
 }

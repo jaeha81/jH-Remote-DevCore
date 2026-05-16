@@ -132,7 +132,8 @@ async function runDiscordLive(config) {
   const textBot = createDiscordTextBot({ config });
   const gateway = createDiscordGatewayBot({
     token: config.discord.token,
-    textBot
+    textBot,
+    keepAlive: true
   });
   await gateway.connect();
   console.log(JSON.stringify({
