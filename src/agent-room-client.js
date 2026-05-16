@@ -6,10 +6,7 @@ export function createAgentRoomClient({
 }) {
   return {
     async send(message) {
-      const payload = {
-        target,
-        message
-      };
+      const payload = buildAgentRoomPayload(target, message);
 
       if (!enabled) {
         return {
@@ -24,7 +21,7 @@ export function createAgentRoomClient({
         throw new TypeError('fetch implementation is required when Agent Room is enabled');
       }
 
-      const response = await fetchImpl(`${baseUrl}/messages`, {
+      const response = await fetchImpl(`${baseUrl}/api/messages`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json'
@@ -52,6 +49,39 @@ export function createAgentRoomClient({
       };
     }
   };
+}
+
+function buildAgentRoomPayload(target, message) {
+  return {
+    speaker: 'user',
+    kind: message.risk === 'safe' ? 'request' : 'review',
+    target,
+    taskType: taskTypeFor(message),
+    body: formatBody(message),
+    source: message.source ?? 'voice-local-connector'
+  };
+}
+
+function taskTypeFor(message) {
+  if (targetForReview(message)) return 'review';
+  if (message.intent === 'claude_analysis_request') return 'analysis';
+  if (message.intent === 'review_request') return 'review';
+  return 'implementation';
+}
+
+function targetForReview(message) {
+  return message.actionType === 'codex_review' || message.intent === 'review_request';
+}
+
+function formatBody(message) {
+  return [
+    '[Voice DevCore]',
+    `intent=${message.intent}`,
+    `risk=${message.risk}`,
+    `action=${message.actionType}`,
+    '',
+    message.transcript
+  ].join('\n');
 }
 
 async function readResponseBody(response) {

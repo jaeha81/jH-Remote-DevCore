@@ -44,6 +44,10 @@ test('enabled Agent Room client posts JSON payload', async () => {
   });
 
   assert.equal(result.sent, true);
-  assert.equal(calls[0].url, 'http://agent-room.local/messages');
-  assert.equal(JSON.parse(calls[0].options.body).target, 'claude');
+  assert.equal(calls[0].url, 'http://agent-room.local/api/messages');
+  const body = JSON.parse(calls[0].options.body);
+  assert.equal(body.speaker, 'user');
+  assert.equal(body.target, 'claude');
+  assert.equal(body.taskType, 'implementation');
+  assert.match(body.body, /현재 상태 알려줘/);
 });
