@@ -1,12 +1,14 @@
 # Handoff Prompt
 
-Continue work on `D:\ai프로젝트\jH Remote DevCore`.
+Continue work on this local project:
+
+`D:\ai프로젝트\jH Remote DevCore`
 
 Repository:
 
 - `https://github.com/jaeha81/jH-Remote-DevCore.git`
 
-Current implementation:
+## Current Implementation
 
 - Text command path exists.
 - Discord text Gateway bot exists.
@@ -16,13 +18,14 @@ Current implementation:
 - OpenAI Whisper provider exists.
 - Discord voice capture remains gated.
 
-Start steps:
+## Start Steps
 
-1. Run `git status --short`.
-2. Run `node --test`.
-3. Run `node src/cli.js --check-agent-room`.
-4. If Agent Room returns `agent_room_unexpected_response`, fix the local port conflict before live routing.
-5. Continue with real Discord token test:
+1. Run `git pull`.
+2. Run `git status --short`.
+3. Run `node --test`.
+4. Run `node src/cli.js --check-agent-room`.
+5. If Agent Room returns `agent_room_unexpected_response`, fix the local port/API mismatch before live routing.
+6. Continue with real Discord token test:
    - set `DISCORD_BOT_TOKEN`
    - set `AGENT_ROOM_BASE_URL`
    - set `AGENT_ROOM_ENABLED=true`
@@ -43,17 +46,24 @@ If context compression risk appears:
 7. Give this new-session command:
 
 ```text
-작업 이어서 재개.
+Resume work.
 
-프로젝트: D:\ai프로젝트\jH Remote DevCore
-레포: https://github.com/jaeha81/jH-Remote-DevCore.git
+Project: D:\ai프로젝트\jH Remote DevCore
+Repo: https://github.com/jaeha81/jH-Remote-DevCore.git
 
-먼저 다음을 실행:
+First run:
 1. git pull
 2. git status --short
 3. node --test
 4. node src/cli.js --check-agent-room
 
-그 다음 llm-wiki/handoff-prompt.md를 읽고 이어서 진행.
-컨텍스트 압축 위험이 생기면 사용자에게 먼저 고지하고, llm-wiki를 갱신한 뒤 새 세션 시작 명령문을 출력하고 종료.
+Then read llm-wiki/handoff-prompt.md and continue.
+If context compression risk appears, notify user first, update llm-wiki, print new-session prompt, and end current session.
 ```
+
+## Immediate Next Work
+
+1. Fix Agent Room port/API mismatch.
+2. Confirm `node src/cli.js --check-agent-room` returns JSON status.
+3. Run one safe text command with `AGENT_ROOM_ENABLED=true`.
+4. If Agent Room works, proceed to Discord live token test.

@@ -48,3 +48,11 @@ Defined required handoff sequence:
 - commit and push.
 - provide new-session command.
 - end current session.
+
+## Session Handoff Verification
+
+Reason:
+
+- Current session exceeded safe context threshold.
+- New implementation stopped.
+- LLM Wiki handoff prompt normalized to avoid broken encoding in next-session command.
