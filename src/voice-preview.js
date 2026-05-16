@@ -85,6 +85,7 @@ export function createVoicePreviewServer({
   return {
     port,
     server,
+    renderHtml: renderPreviewHtml,
     async start() {
       await new Promise((resolve, reject) => {
         server.once('error', reject);
@@ -305,6 +306,7 @@ function renderPreviewHtml() {
     button { border: 1px solid #98a6b3; background: #17202a; color: #fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
     button.secondary { background: #fff; color: #17202a; }
     button:disabled { opacity: .55; cursor: not-allowed; }
+    input { border: 1px solid #b8c4d0; border-radius: 6px; padding: 9px 10px; min-width: 260px; flex: 1; font-size: 14px; }
     .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eef2f6; padding: 8px 0; font-size: 14px; }
     .row:last-child { border-bottom: 0; }
     .key { color: #5d6d7e; }
@@ -338,6 +340,10 @@ function renderPreviewHtml() {
           <button id="startSpeech">Start mic</button>
           <button class="secondary" id="stopSpeech">Stop</button>
         </div>
+        <div class="actions">
+          <input id="manualTranscript" type="text" placeholder="모바일에서 음성이 안 되면 여기에 입력">
+          <button id="sendManualTranscript">Send</button>
+        </div>
         <pre id="speechLog"></pre>
       </div>
       <div class="panel">
@@ -362,6 +368,8 @@ function renderPreviewHtml() {
     const speechLog = document.getElementById('speechLog');
     const startSpeech = document.getElementById('startSpeech');
     const stopSpeech = document.getElementById('stopSpeech');
+    const manualTranscript = document.getElementById('manualTranscript');
+    const sendManualTranscript = document.getElementById('sendManualTranscript');
     let recognition;
 
     function appendSpeech(message) {
@@ -371,6 +379,7 @@ function renderPreviewHtml() {
     }
 
     async function sendTranscript(transcript) {
+      if (!transcript.trim()) return;
       const response = await fetch('/api/transcript', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -380,6 +389,17 @@ function renderPreviewHtml() {
       appendSpeech('sent: ' + transcript + ' -> ' + JSON.stringify(result.delivery));
       await refresh();
     }
+
+    sendManualTranscript.onclick = () => {
+      const transcript = manualTranscript.value.trim();
+      manualTranscript.value = '';
+      sendTranscript(transcript).catch((error) => appendSpeech('send failed: ' + error.message));
+    };
+    manualTranscript.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        sendManualTranscript.click();
+      }
+    });
 
     if (!SpeechRecognition) {
       speechStatus.innerHTML = '<span class="bad">browser speech recognition unsupported</span>';

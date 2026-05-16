@@ -113,6 +113,13 @@ test('preview transcript submission rejects empty speech', async () => {
   );
 });
 
+test('preview page includes manual mobile fallback controls', () => {
+  const preview = createVoicePreviewServer();
+
+  assert.match(preview.renderHtml(), /id="manualTranscript"/);
+  assert.match(preview.renderHtml(), /id="sendManualTranscript"/);
+});
+
 test('voice preview server can bind to a requested host for LAN access', async () => {
   const preview = createVoicePreviewServer({
     host: '127.0.0.1',
