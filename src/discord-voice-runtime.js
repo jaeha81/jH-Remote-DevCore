@@ -83,7 +83,7 @@ export async function createDiscordVoiceRuntime({ logger = console } = {}) {
   };
 }
 
-async function handleSpeech({ userId, opusStream, prism, onAudio, logger }) {
+export async function handleSpeech({ userId, opusStream, prism, onAudio, logger }) {
   const decoder = new prism.opus.Decoder({
     rate: 48000,
     channels: 2,
@@ -91,9 +91,23 @@ async function handleSpeech({ userId, opusStream, prism, onAudio, logger }) {
   });
   const decoded = opusStream.pipe(decoder);
   const chunks = [];
+  let streamError;
 
-  for await (const chunk of decoded) {
-    chunks.push(chunk);
+  opusStream.on('error', (error) => {
+    streamError = error;
+    decoder.destroy(error);
+  });
+
+  decoder.on('error', (error) => {
+    streamError = error;
+  });
+
+  try {
+    for await (const chunk of decoded) {
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    throw streamError ?? error;
   }
 
   if (chunks.length === 0) {
