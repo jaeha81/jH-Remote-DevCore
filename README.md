@@ -32,6 +32,21 @@ $env:OPENAI_API_KEY="sk-..."
 node src/cli.js --voice-file .\voice.webm
 ```
 
+Discord live voice capture:
+
+```powershell
+$env:DISCORD_BOT_TOKEN="..."
+$env:DISCORD_VOICE_GUILD_ID="1505223168170660001"
+$env:DISCORD_VOICE_CHANNEL_ID="voice-channel-id"
+$env:WHISPER_PROVIDER="openai"
+$env:OPENAI_API_KEY="sk-..."
+$env:AGENT_ROOM_ENABLED="true"
+$env:AGENT_ROOM_BASE_URL="http://localhost:3100"
+node src/cli.js --discord-voice-live
+```
+
+The voice bot joins the configured voice channel, records each detected speech segment, sends it to the configured Whisper provider, classifies the transcript, and sends safe Agent Room routes through the existing policy layer.
+
 Discord `MESSAGE_CREATE` JSON dry-run:
 
 ```json
@@ -157,7 +172,7 @@ Discord/Voice -> Whisper Agent -> Local Connector Agent -> Local Adapter -> Exis
 
 - Discord text Gateway bot is implemented with Node built-in `WebSocket`.
 - OpenAI Whisper transcription is available through `WHISPER_PROVIDER=openai`, but live use requires `OPENAI_API_KEY`.
-- Discord voice capture is gated. Live voice capture needs `@discordjs/voice`, `prism-media`, and an Opus runtime.
+- Discord voice capture is implemented for explicitly configured guild/channel IDs and requires `discord.js`, `@discordjs/voice`, `prism-media`, and an Opus runtime.
 - Local Adapter does not run shell commands.
 - Risky commands return approval requests only.
 - Agent Room bridge uses `POST /api/messages` and `GET /api/status?format=json`.

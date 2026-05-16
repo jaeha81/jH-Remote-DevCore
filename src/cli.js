@@ -11,6 +11,7 @@ import { createDiscordTextBot } from './discord-text-bot.js';
 import { createDiscordGatewayBot } from './discord-gateway-bot.js';
 import { createAgentRoomDiagnostics } from './agent-room-diagnostics.js';
 import { writeTodayPlusDrop } from './today-plus-drop.js';
+import { createDiscordVoiceController } from './discord-voice-controller.js';
 
 async function main(argv) {
   const args = parseArgs(argv);
@@ -18,6 +19,11 @@ async function main(argv) {
 
   if (args.discordLive) {
     await runDiscordLive(config);
+    return;
+  }
+
+  if (args.discordVoiceLive) {
+    await runDiscordVoiceLive(config);
     return;
   }
 
@@ -59,6 +65,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === '--discord-live') {
       args.discordLive = true;
+    } else if (arg === '--discord-voice-live') {
+      args.discordVoiceLive = true;
     } else if (arg === '--check-agent-room') {
       args.checkAgentRoom = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -113,6 +121,7 @@ function printHelp() {
   node src/cli.js --voice-file .\\voice.webm
   node src/cli.js --discord-message .\\discord-message.json
   node src/cli.js --discord-live
+  node src/cli.js --discord-voice-live
   node src/cli.js --check-agent-room
 
 MVP:
@@ -121,6 +130,7 @@ MVP:
   --voice-file  audio file through WHISPER_PROVIDER
   --discord-message  Discord MESSAGE_CREATE JSON file
   --discord-live  connect Discord Gateway text bot
+  --discord-voice-live  connect Discord voice capture bot
   --check-agent-room  check configured Agent Room /api/status
 
 Agent Room:
@@ -141,6 +151,34 @@ async function runDiscordLive(config) {
     mode: 'discord-live',
     prefix: config.discord.prefix
   }, null, 2));
+}
+
+async function runDiscordVoiceLive(config) {
+  if (config.whisper.provider !== 'openai' || !config.whisper.apiKey) {
+    console.log(JSON.stringify({
+      started: false,
+      reason: 'voice_transcriber_not_configured',
+      nextStep: 'Set WHISPER_PROVIDER=openai and OPENAI_API_KEY before starting Discord voice capture.'
+    }, null, 2));
+    return;
+  }
+
+  const { createDiscordVoiceRuntime } = await import('./discord-voice-runtime.js');
+  const runtime = await createDiscordVoiceRuntime();
+  const controller = createDiscordVoiceController({
+    config,
+    runtime,
+    transcribeAudio: async ({ audioPath }) => {
+      const transcriber = createTranscriberFromConfig({
+        ...config.whisper,
+        filePath: audioPath
+      });
+      return transcriber.transcribe();
+    }
+  });
+
+  const result = await controller.startCapture();
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function maybeDeliver(agentRoom, routing, config) {
