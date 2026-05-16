@@ -10,6 +10,15 @@ export function createAgentRoomDiagnostics({
         });
         const body = await readJson(response);
 
+        if (!body || typeof body !== 'object') {
+          return {
+            ok: false,
+            status: response.status,
+            reason: 'agent_room_unexpected_response',
+            body
+          };
+        }
+
         return {
           ok: response.ok,
           status: response.status,

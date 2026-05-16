@@ -38,3 +38,22 @@ test('diagnostics reports unreachable Agent Room', async () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'agent_room_unreachable');
 });
+
+test('diagnostics rejects non-json status response', async () => {
+  const diagnostics = createAgentRoomDiagnostics({
+    baseUrl: 'http://agent-room.local',
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map([['content-type', 'text/html']]),
+      async json() {
+        throw new Error('not json');
+      }
+    })
+  });
+
+  const result = await diagnostics.status();
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'agent_room_unexpected_response');
+});
