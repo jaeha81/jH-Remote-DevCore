@@ -24,6 +24,29 @@ Transcript file input:
 node src/cli.js --file .\voice-command.txt
 ```
 
+Audio file input through Whisper provider:
+
+```powershell
+$env:WHISPER_PROVIDER="openai"
+$env:OPENAI_API_KEY="sk-..."
+node src/cli.js --voice-file .\voice.webm
+```
+
+Discord `MESSAGE_CREATE` JSON dry-run:
+
+```json
+{
+  "id": "message-id",
+  "channel_id": "channel-id",
+  "author": { "id": "user-id", "bot": false },
+  "content": "!jh 현재 상태 알려줘"
+}
+```
+
+```powershell
+node src/cli.js --discord-message .\discord-message.json
+```
+
 ## Agent Room Bridge
 
 Default mode is dry-run. It builds the Agent Room payload but does not send it.
@@ -59,7 +82,8 @@ Discord/Voice -> Whisper Agent -> Local Connector Agent -> Local Adapter -> Exis
 ## Current MVP Limits
 
 - Real Discord bot is not connected yet.
-- Real Whisper API/local model is not connected yet.
+- OpenAI Whisper transcription is available through `WHISPER_PROVIDER=openai`, but live use requires `OPENAI_API_KEY`.
+- Discord live Gateway bot is not connected yet; current Discord input is `MESSAGE_CREATE` JSON parsing.
 - Local Adapter does not run shell commands.
 - Risky commands return approval requests only.
 - Agent Room bridge assumes `POST /messages` JSON endpoint.

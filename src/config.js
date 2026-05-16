@@ -4,6 +4,14 @@ export function loadConfig(env = process.env) {
       enabled: parseBoolean(env.AGENT_ROOM_ENABLED, false),
       baseUrl: normalizeUrl(env.AGENT_ROOM_BASE_URL ?? 'http://127.0.0.1:3100'),
       target: normalizeTarget(env.AGENT_ROOM_TARGET ?? 'claude')
+    },
+    whisper: {
+      provider: String(env.WHISPER_PROVIDER ?? 'text-file').trim().toLowerCase(),
+      apiKey: env.OPENAI_API_KEY ?? '',
+      model: env.WHISPER_MODEL ?? 'whisper-1'
+    },
+    discord: {
+      prefix: env.DISCORD_COMMAND_PREFIX ?? '!jh'
     }
   };
 }

@@ -9,6 +9,8 @@ test('loads defaults for local dry-run operation', () => {
   assert.equal(config.agentRoom.enabled, false);
   assert.equal(config.agentRoom.baseUrl, 'http://127.0.0.1:3100');
   assert.equal(config.agentRoom.target, 'claude');
+  assert.equal(config.whisper.provider, 'text-file');
+  assert.equal(config.discord.prefix, '!jh');
 });
 
 test('enables Agent Room when env flag is true', () => {
