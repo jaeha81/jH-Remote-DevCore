@@ -26,6 +26,18 @@ test('approval-required command returns approval request action', async () => {
   assert.equal(result.action.autoExecutable, false);
 });
 
+test('today plus transcript returns file drop action plan', async () => {
+  const agent = createLocalConnectorAgent();
+
+  const result = await agent.handleTranscript('today plus\n\nOriginal content');
+
+  assert.equal(result.intent, 'today_plus_capture');
+  assert.equal(result.risk, 'safe');
+  assert.equal(result.action.type, 'today_plus_drop');
+  assert.equal(result.action.autoExecutable, true);
+  assert.equal(result.action.route.channel, 'local_file');
+});
+
 test('blocked command never returns executable action', async () => {
   const agent = createLocalConnectorAgent();
 

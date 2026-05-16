@@ -8,10 +8,11 @@ Updated: 2026-05-16 session handoff
 - Local command classification implemented.
 - Safe / approval-required / blocked risk policy implemented.
 - Agent Room bridge aligned to real API path `POST /api/messages`.
-- Agent Room diagnostics added for `GET /api/status`.
+- Agent Room diagnostics added for `GET /api/status?format=json`.
 - Discord text Gateway bot implemented with Node built-in `WebSocket`.
 - Discord REST responder implemented.
 - Approval flow implemented.
+- Today Plus file drop route implemented for CLI and Discord text paths.
 - OpenAI Whisper provider implemented.
 - Discord voice capture gate and roadmap added.
 - LLM Wiki handoff structure added.
@@ -20,12 +21,12 @@ Updated: 2026-05-16 session handoff
 ## Verification
 
 - `node --test`
-- Latest observed result: 27 tests passing, 0 failing.
+- Latest observed result: 35 tests passing, 0 failing.
 
 ## Known Environment Issue
 
-- `http://127.0.0.1:3100` may be occupied by another local app.
-- Diagnostics now rejects non-JSON `/api/status` responses to prevent false positive Agent Room checks.
+- `http://127.0.0.1:3100` is occupied by JH AI Dev Nexus on this PC; DevCore defaults to `http://localhost:3100` so Windows resolves to the Agent Room listener.
+- Diagnostics now forces JSON with `/api/status?format=json` and rejects non-JSON responses to prevent false positive Agent Room checks.
 - PowerShell profile and global git ignore permission warnings appear but do not block tests or git push.
 
 ## Not Yet Complete

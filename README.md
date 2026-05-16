@@ -53,7 +53,7 @@ Discord live text bot:
 $env:DISCORD_BOT_TOKEN="..."
 $env:DISCORD_COMMAND_PREFIX="!jh"
 $env:AGENT_ROOM_ENABLED="true"
-$env:AGENT_ROOM_BASE_URL="http://127.0.0.1:3100"
+$env:AGENT_ROOM_BASE_URL="http://localhost:3100"
 node src/cli.js --discord-live
 ```
 
@@ -62,6 +62,7 @@ Current live bot behavior:
 - ignores bot messages
 - accepts only prefixed text commands, default `!jh`
 - routes safe commands to Agent Room
+- writes Today Plus captures to the configured archiver inbox
 - creates Discord approval prompts for risky commands
 - blocks destructive commands before Agent Room delivery
 
@@ -77,7 +78,7 @@ node src/cli.js --text "현재 상태 알려줘"
 Check Agent Room connectivity:
 
 ```powershell
-$env:AGENT_ROOM_BASE_URL="http://127.0.0.1:3100"
+$env:AGENT_ROOM_BASE_URL="http://localhost:3100"
 node src/cli.js --check-agent-room
 ```
 
@@ -85,12 +86,36 @@ To send safe commands to Agent Room:
 
 ```powershell
 $env:AGENT_ROOM_ENABLED="true"
-$env:AGENT_ROOM_BASE_URL="http://127.0.0.1:3100"
+$env:AGENT_ROOM_BASE_URL="http://localhost:3100"
 $env:AGENT_ROOM_TARGET="claude"
 node src/cli.js --text "현재 상태 알려줘"
 ```
 
 Risky commands still return `approval_required` and are not sent as executable work.
+
+## Today Plus File Drop
+
+Remote DevCore can write Today Plus content into the local archiver inbox. The archiver should watch the same folder through its `config.yaml` `input_folder`.
+
+```powershell
+$env:TODAY_PLUS_INBOX="D:\ai프로젝트\today-plus-obsidian-archiver\inbox"
+node src/cli.js --text "today plus`n`nOriginal Today Plus content"
+```
+
+Run the archiver watcher separately:
+
+```powershell
+cd "D:\ai프로젝트\today-plus-obsidian-archiver"
+python main.py --watch
+```
+
+Discord usage:
+
+```text
+!jh today plus
+
+Original Today Plus content
+```
 
 ## Test
 
@@ -124,4 +149,4 @@ Discord/Voice -> Whisper Agent -> Local Connector Agent -> Local Adapter -> Exis
 - Discord voice capture is gated. Live voice capture needs `@discordjs/voice`, `prism-media`, and an Opus runtime.
 - Local Adapter does not run shell commands.
 - Risky commands return approval requests only.
-- Agent Room bridge uses `POST /api/messages` and `GET /api/status`.
+- Agent Room bridge uses `POST /api/messages` and `GET /api/status?format=json`.

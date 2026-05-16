@@ -10,6 +10,27 @@ test('classifies status request as safe status intent', () => {
   assert.equal(result.risk, 'safe');
 });
 
+test('classifies ascii status request as safe status intent', () => {
+  const result = classifyCommand('status');
+
+  assert.equal(result.intent, 'status');
+  assert.equal(result.risk, 'safe');
+});
+
+test('classifies today plus capture as safe', () => {
+  const result = classifyCommand('today plus\n\nOriginal content');
+
+  assert.equal(result.intent, 'today_plus_capture');
+  assert.equal(result.risk, 'safe');
+});
+
+test('classifies Korean today plus capture as safe', () => {
+  const result = classifyCommand('오늘의 플러스\n\n원문 내용');
+
+  assert.equal(result.intent, 'today_plus_capture');
+  assert.equal(result.risk, 'safe');
+});
+
 test('classifies git push as approval required', () => {
   const result = classifyCommand('git push 해줘');
 

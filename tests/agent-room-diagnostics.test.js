@@ -22,7 +22,7 @@ test('diagnostics checks status endpoint', async () => {
   const result = await diagnostics.status();
 
   assert.equal(result.ok, true);
-  assert.equal(calls[0], 'http://agent-room.local/api/status');
+  assert.equal(calls[0], 'http://agent-room.local/api/status?format=json');
 });
 
 test('diagnostics reports unreachable Agent Room', async () => {

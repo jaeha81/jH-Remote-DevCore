@@ -5,7 +5,7 @@ export function createAgentRoomDiagnostics({
   return {
     async status() {
       try {
-        const response = await fetchImpl(`${baseUrl}/api/status`, {
+        const response = await fetchImpl(`${baseUrl}/api/status?format=json`, {
           method: 'GET'
         });
         const body = await readJson(response);

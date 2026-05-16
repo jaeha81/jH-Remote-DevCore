@@ -4,6 +4,7 @@ import { loadConfig } from './config.js';
 import { createDiscordIngress } from './discord-ingress.js';
 import { createDiscordResponder } from './discord-responder.js';
 import { createLocalConnectorAgent } from './local-connector-agent.js';
+import { writeTodayPlusDrop } from './today-plus-drop.js';
 
 export function createDiscordTextBot({
   config = loadConfig(),
@@ -12,7 +13,8 @@ export function createDiscordTextBot({
   agentRoomClient = createAgentRoomClient(config.agentRoom),
   responder = createDiscordResponder(config.discord),
   approvals = createApprovalManager(),
-  approvalIdFactory
+  approvalIdFactory,
+  todayPlusDrop = writeTodayPlusDrop
 } = {}) {
   const approvalStore = approvalIdFactory ? createApprovalManager({ idFactory: approvalIdFactory }) : approvals;
 
@@ -40,7 +42,7 @@ export function createDiscordTextBot({
         return { handled: true, routing, approval, reply };
       }
 
-      const delivery = await maybeDeliver(agentRoomClient, routing);
+      const delivery = await maybeDeliver(agentRoomClient, routing, config, parsed, event, todayPlusDrop);
       const reply = await responder.sendMessage(channelId, formatSafeReply(routing, delivery));
       return { handled: true, routing, delivery, reply };
     },
@@ -49,7 +51,16 @@ export function createDiscordTextBot({
   };
 }
 
-async function maybeDeliver(agentRoomClient, routing) {
+async function maybeDeliver(agentRoomClient, routing, config, parsed, event, todayPlusDrop) {
+  if (routing.action.type === 'today_plus_drop') {
+    return todayPlusDrop({
+      inbox: config.todayPlus.inbox,
+      transcript: routing.transcript,
+      source: config.todayPlus.source || 'discord',
+      sender: event.author?.username ?? parsed.discord?.authorId ?? 'user'
+    });
+  }
+
   if (routing.action.route.channel !== 'agent_room') {
     return {
       sent: false,

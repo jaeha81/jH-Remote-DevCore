@@ -12,6 +12,7 @@ test('disabled Agent Room client returns dry-run result', async () => {
 
   const result = await client.send({
     intent: 'status',
+    risk: 'safe',
     transcript: '현재 상태 알려줘'
   });
 
@@ -40,6 +41,7 @@ test('enabled Agent Room client posts JSON payload', async () => {
 
   const result = await client.send({
     intent: 'status',
+    risk: 'safe',
     transcript: '현재 상태 알려줘'
   });
 
@@ -47,6 +49,7 @@ test('enabled Agent Room client posts JSON payload', async () => {
   assert.equal(calls[0].url, 'http://agent-room.local/api/messages');
   const body = JSON.parse(calls[0].options.body);
   assert.equal(body.speaker, 'user');
+  assert.equal(body.kind, 'direction');
   assert.equal(body.target, 'claude');
   assert.equal(body.taskType, 'implementation');
   assert.match(body.body, /현재 상태 알려줘/);

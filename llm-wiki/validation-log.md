@@ -10,7 +10,7 @@ node --test
 
 Result:
 
-- 27 tests passing.
+- 35 tests passing.
 - 0 tests failing.
 
 Covered behavior:
@@ -23,6 +23,7 @@ Covered behavior:
 - Discord Gateway message forwarding.
 - Discord REST responder.
 - Discord text bot safe and approval flows.
+- Today Plus classification, file drop writer, CLI delivery, and Discord delivery.
 - Discord voice dependency gate.
 - Local connector action planning.
 - Whisper mock, file, and OpenAI provider behavior.
@@ -35,8 +36,8 @@ node src/cli.js --check-agent-room
 
 Observed issue:
 
-- `127.0.0.1:3100` returned HTTP 200 but not JSON Agent Room status.
-- Diagnostic now reports `agent_room_unexpected_response`.
+- `127.0.0.1:3100` returned HTTP 200 with JH AI Dev Nexus HTML, while `localhost:3100/api/status?format=json` returned Agent Room JSON.
+- Diagnostic default now uses `localhost:3100` and requests `/api/status?format=json`.
 
 ## Context Handoff Protocol Validation
 

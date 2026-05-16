@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { createDiscordTextBot } from './discord-text-bot.js';
 import { createDiscordGatewayBot } from './discord-gateway-bot.js';
 import { createAgentRoomDiagnostics } from './agent-room-diagnostics.js';
+import { writeTodayPlusDrop } from './today-plus-drop.js';
 
 async function main(argv) {
   const args = parseArgs(argv);
@@ -30,7 +31,7 @@ async function main(argv) {
   const agent = createLocalConnectorAgent();
   const routing = await agent.handleTranscript(transcript);
   const agentRoom = createAgentRoomClient(config.agentRoom);
-  const delivery = await maybeDeliver(agentRoom, routing);
+  const delivery = await maybeDeliver(agentRoom, routing, config);
   const result = {
     ...routing,
     delivery
@@ -141,7 +142,16 @@ async function runDiscordLive(config) {
   }, null, 2));
 }
 
-async function maybeDeliver(agentRoom, routing) {
+async function maybeDeliver(agentRoom, routing, config) {
+  if (routing.action.type === 'today_plus_drop') {
+    return writeTodayPlusDrop({
+      inbox: config.todayPlus.inbox,
+      transcript: routing.transcript,
+      source: config.todayPlus.source || routing.agentRoomMessage.source || 'cli',
+      sender: 'user'
+    });
+  }
+
   if (routing.action.route.channel !== 'agent_room') {
     return {
       sent: false,

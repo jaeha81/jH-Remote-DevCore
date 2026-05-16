@@ -30,6 +30,35 @@ test('Discord text bot routes safe command and replies with dry-run delivery', a
   assert.match(replies[0].content, /safe/);
 });
 
+test('Discord text bot writes today plus content through injected drop writer', async () => {
+  const writes = [];
+  const bot = createDiscordTextBot({
+    config: {
+      discord: { prefix: '!jh', token: 'discord-token' },
+      agentRoom: { enabled: false, baseUrl: 'http://agent-room.local', target: 'claude' },
+      todayPlus: { inbox: 'C:\\TodayPlus', source: '' }
+    },
+    responder: {
+      sendMessage: async () => ({ sent: true })
+    },
+    todayPlusDrop: async (input) => {
+      writes.push(input);
+      return { written: true, path: 'C:\\TodayPlus\\today-plus-20260516-123000.md' };
+    }
+  });
+
+  const result = await bot.handleMessageCreate({
+    author: { bot: false, username: 'mobile-user' },
+    channel_id: 'channel-1',
+    content: '!jh today plus\n\nOriginal content'
+  });
+
+  assert.equal(result.handled, true);
+  assert.equal(result.delivery.written, true);
+  assert.equal(writes[0].source, 'discord');
+  assert.equal(writes[0].sender, 'mobile-user');
+});
+
 test('Discord text bot creates approval request for risky command', async () => {
   const replies = [];
   const bot = createDiscordTextBot({

@@ -44,6 +44,14 @@ function inferApprovalIntent(text) {
 }
 
 function inferSafeIntent(text) {
+  if (/\btoday[-\s]?plus\b/i.test(text) || /(오늘의\s*플러스|ChatGPT\s*오늘의\s*플러스)/i.test(text)) {
+    return 'today_plus_capture';
+  }
+
+  if (/\bstatus\b/i.test(text)) {
+    return 'status';
+  }
+
   if (/(현재 상태|상태|진행 상황|보고)/i.test(text)) {
     return 'status';
   }

@@ -38,6 +38,12 @@ function buildSafeAction(intent, routeTarget) {
       message: '개발 착수 워크플로우 요청 생성',
       route: buildRoute('agent_room', routeTarget)
     },
+    today_plus_capture: {
+      type: 'today_plus_drop',
+      autoExecutable: true,
+      message: 'Today Plus content will be written to the archiver inbox.',
+      route: buildRoute('local_file', 'today_plus')
+    },
     review_request: {
       type: 'codex_review',
       autoExecutable: true,

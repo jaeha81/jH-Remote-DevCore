@@ -2,7 +2,7 @@ export function loadConfig(env = process.env) {
   return {
     agentRoom: {
       enabled: parseBoolean(env.AGENT_ROOM_ENABLED, false),
-      baseUrl: normalizeUrl(env.AGENT_ROOM_BASE_URL ?? 'http://127.0.0.1:3100'),
+      baseUrl: normalizeUrl(env.AGENT_ROOM_BASE_URL ?? 'http://localhost:3100'),
       target: normalizeTarget(env.AGENT_ROOM_TARGET ?? 'claude')
     },
     whisper: {
@@ -13,6 +13,10 @@ export function loadConfig(env = process.env) {
     discord: {
       prefix: env.DISCORD_COMMAND_PREFIX ?? '!jh',
       token: env.DISCORD_BOT_TOKEN ?? ''
+    },
+    todayPlus: {
+      inbox: normalizePath(env.TODAY_PLUS_INBOX ?? 'D:\\ai프로젝트\\today-plus-obsidian-archiver\\inbox'),
+      source: String(env.TODAY_PLUS_SOURCE ?? '').trim()
     }
   };
 }
@@ -27,6 +31,10 @@ function parseBoolean(value, fallback) {
 
 function normalizeUrl(value) {
   return String(value).trim().replace(/\/+$/, '');
+}
+
+function normalizePath(value) {
+  return String(value).trim();
 }
 
 function normalizeTarget(value) {

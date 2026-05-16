@@ -54,7 +54,7 @@ export function createAgentRoomClient({
 function buildAgentRoomPayload(target, message) {
   return {
     speaker: 'user',
-    kind: message.risk === 'safe' ? 'request' : 'review',
+    kind: message.risk === 'safe' ? 'direction' : 'review',
     target,
     taskType: taskTypeFor(message),
     body: formatBody(message),

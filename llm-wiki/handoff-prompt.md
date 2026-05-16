@@ -13,7 +13,7 @@ Repository:
 - Text command path exists.
 - Discord text Gateway bot exists.
 - Agent Room client uses `/api/messages`.
-- Agent Room diagnostics uses `/api/status`.
+- Agent Room diagnostics uses `/api/status?format=json`.
 - Approval flow exists.
 - OpenAI Whisper provider exists.
 - Discord voice capture remains gated.
