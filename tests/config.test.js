@@ -11,8 +11,17 @@ test('loads defaults for local dry-run operation', () => {
   assert.equal(config.agentRoom.target, 'claude');
   assert.equal(config.whisper.provider, 'text-file');
   assert.equal(config.discord.prefix, '!jh');
+  assert.deepEqual(config.discord.naturalChannelIds, []);
   assert.equal(config.todayPlus.inbox, 'D:\\ai프로젝트\\today-plus-obsidian-archiver\\inbox');
   assert.equal(config.todayPlus.source, '');
+});
+
+test('loads natural Discord channel allowlist from env', () => {
+  const config = loadConfig({
+    DISCORD_NATURAL_CHANNEL_IDS: 'channel-1, channel-2,,channel-3'
+  });
+
+  assert.deepEqual(config.discord.naturalChannelIds, ['channel-1', 'channel-2', 'channel-3']);
 });
 
 test('enables Agent Room when env flag is true', () => {

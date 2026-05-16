@@ -52,6 +52,7 @@ Discord live text bot:
 ```powershell
 $env:DISCORD_BOT_TOKEN="..."
 $env:DISCORD_COMMAND_PREFIX="!jh"
+$env:DISCORD_NATURAL_CHANNEL_IDS="channel-id"
 $env:AGENT_ROOM_ENABLED="true"
 $env:AGENT_ROOM_BASE_URL="http://localhost:3100"
 node src/cli.js --discord-live
@@ -61,10 +62,20 @@ Current live bot behavior:
 
 - ignores bot messages
 - accepts only prefixed text commands, default `!jh`
+- accepts unprefixed natural text only in channels listed by `DISCORD_NATURAL_CHANNEL_IDS`
 - routes safe commands to Agent Room
 - writes Today Plus captures to the configured archiver inbox
 - creates Discord approval prompts for risky commands
 - blocks destructive commands before Agent Room delivery
+
+Natural Discord text without `!jh` is opt-in per channel:
+
+```powershell
+$env:DISCORD_NATURAL_CHANNEL_IDS="123456789012345678,234567890123456789"
+node src/cli.js --discord-live
+```
+
+In those channels, messages such as `status` or `현재 상태 알려줘` are handled as DevCore commands. Other channels still require the configured prefix.
 
 ## Agent Room Bridge
 

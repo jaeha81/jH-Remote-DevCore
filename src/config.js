@@ -12,7 +12,8 @@ export function loadConfig(env = process.env) {
     },
     discord: {
       prefix: env.DISCORD_COMMAND_PREFIX ?? '!jh',
-      token: env.DISCORD_BOT_TOKEN ?? ''
+      token: env.DISCORD_BOT_TOKEN ?? '',
+      naturalChannelIds: parseList(env.DISCORD_NATURAL_CHANNEL_IDS)
     },
     todayPlus: {
       inbox: normalizePath(env.TODAY_PLUS_INBOX ?? 'D:\\ai프로젝트\\today-plus-obsidian-archiver\\inbox'),
@@ -35,6 +36,17 @@ function normalizeUrl(value) {
 
 function normalizePath(value) {
   return String(value).trim();
+}
+
+function parseList(value) {
+  if (!value) {
+    return [];
+  }
+
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function normalizeTarget(value) {

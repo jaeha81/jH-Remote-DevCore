@@ -1,5 +1,6 @@
-export function createDiscordIngress({ prefix = '!jh' } = {}) {
+export function createDiscordIngress({ prefix = '!jh', naturalChannelIds = [] } = {}) {
   const normalizedPrefix = String(prefix).trim();
+  const naturalChannels = new Set(naturalChannelIds.map((id) => String(id).trim()).filter(Boolean));
 
   return {
     parseMessageCreate(event) {
@@ -11,7 +12,11 @@ export function createDiscordIngress({ prefix = '!jh' } = {}) {
       const commandPrefix = `${normalizedPrefix} `;
 
       if (!content.startsWith(commandPrefix)) {
-        return ignored('prefix_not_matched');
+        if (!naturalChannels.has(String(event?.channel_id ?? ''))) {
+          return ignored('prefix_not_matched');
+        }
+
+        return acceptedNatural(event, content);
       }
 
       const transcript = content.slice(commandPrefix.length).trim();
@@ -20,16 +25,37 @@ export function createDiscordIngress({ prefix = '!jh' } = {}) {
         return ignored('empty_command');
       }
 
-      return {
-        accepted: true,
-        source: 'discord:text',
-        transcript,
-        discord: {
-          messageId: event.id ?? null,
-          channelId: event.channel_id ?? null,
-          authorId: event.author?.id ?? null
-        }
-      };
+      return acceptedPrefixed(event, transcript);
+    }
+  };
+}
+
+function acceptedPrefixed(event, transcript) {
+  return {
+    accepted: true,
+    source: 'discord:text',
+    transcript,
+    discord: {
+      messageId: event.id ?? null,
+      channelId: event.channel_id ?? null,
+      authorId: event.author?.id ?? null
+    }
+  };
+}
+
+function acceptedNatural(event, transcript) {
+  if (!transcript) {
+    return ignored('empty_command');
+  }
+
+  return {
+    accepted: true,
+    source: 'discord:natural',
+    transcript,
+    discord: {
+      messageId: event.id ?? null,
+      channelId: event.channel_id ?? null,
+      authorId: event.author?.id ?? null
     }
   };
 }

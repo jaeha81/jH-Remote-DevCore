@@ -30,6 +30,57 @@ test('Discord text bot routes safe command and replies with dry-run delivery', a
   assert.match(replies[0].content, /safe/);
 });
 
+test('Discord text bot routes natural text in allowed channel', async () => {
+  const replies = [];
+  const bot = createDiscordTextBot({
+    config: {
+      discord: { prefix: '!jh', token: 'discord-token', naturalChannelIds: ['c1'] },
+      agentRoom: { enabled: false, baseUrl: 'http://agent-room.local', target: 'claude' },
+      todayPlus: { inbox: 'C:\\TodayPlus', source: '' }
+    },
+    responder: {
+      sendMessage: async (channelId, content) => {
+        replies.push({ channelId, content });
+        return { sent: true };
+      }
+    },
+    agentRoomClient: {
+      send: async () => ({ sent: false, reason: 'agent_room_disabled' })
+    }
+  });
+
+  const result = await bot.handleMessageCreate({
+    id: 'm1',
+    channel_id: 'c1',
+    author: { id: 'u1', bot: false },
+    content: 'status'
+  });
+
+  assert.equal(result.handled, true);
+  assert.equal(result.routing.intent, 'status');
+  assert.match(replies[0].content, /safe/);
+});
+
+test('Discord text bot ignores natural text outside allowed channels', async () => {
+  const bot = createDiscordTextBot({
+    config: {
+      discord: { prefix: '!jh', token: 'discord-token', naturalChannelIds: ['c1'] },
+      agentRoom: { enabled: false, baseUrl: 'http://agent-room.local', target: 'claude' },
+      todayPlus: { inbox: 'C:\\TodayPlus', source: '' }
+    }
+  });
+
+  const result = await bot.handleMessageCreate({
+    id: 'm1',
+    channel_id: 'c2',
+    author: { id: 'u1', bot: false },
+    content: 'status'
+  });
+
+  assert.equal(result.handled, false);
+  assert.equal(result.reason, 'prefix_not_matched');
+});
+
 test('Discord text bot writes today plus content through injected drop writer', async () => {
   const writes = [];
   const bot = createDiscordTextBot({
